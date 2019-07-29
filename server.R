@@ -2,7 +2,7 @@ library(shiny)
 library(shinydashboard)
 library(tidyverse)
 
-server <- function(input, output) {
+server <- function(input, output, session) {
     
     # load the data
     usa = readRDS("usa_data.rds")
@@ -68,5 +68,56 @@ server <- function(input, output) {
             stat_df()
         }
     })
+    
+    subset_data = function(){
+        if(length(input$cluster_vars > 0)){
+            usa_subset = usa[,input$cluster_vars]
+            keep_rows = complete.cases(usa_subset)
+            usa_subset = usa_subset[keep_rows,]
+            latlong = usa[keep_rows, c("latitude", "longitude")]
+            return(list(latlong,usa_subset))
+        } else {
+            return(list(NULL, data.frame(latitude=NULL, longitude=NULL)))
+        }
+    }
+    
+    cluster_data = function(df){
+        if(length(input$cluster_vars > 0)){
+            clust_data = sapply(df, function(x){(x-mean(x))/sd(x)})
+            clustering = hclust(dist(clust_data))
+            return(clustering)
+        } else {
+            return(NULL)
+        }
+    }
+    
+    output$clusterPlot = renderPlot({
+        if(length(input$cluster_vars > 0)){
+            dfs = subset_data()
+            latlong = dfs[[1]]
+            clustering = cluster_data(dfs[[2]])
+            clusters = cutree(clustering, k = input$num_clusters)
+            qplot(x = latlong$longitude, y = latlong$latitude, color = as.factor(clusters))
+        } else {
+            ggplot()
+        }
+    })
+    
+    output$clusterNACount = renderUI({
+        if(length(input$cluster_vars > 0)){
+            df = subset_data()[[2]]
+            ifelse(nrow(usa) - nrow(df) > 0,
+                   paste("Note:", nrow(usa) - nrow(df), "records are excluded due to NAs."),
+                   "")
+        } else {
+            ""
+        }
+    })
+    
+    observe({updateSliderInput(session, "mtry_slider", max = max(1, length(input$rf_vars)))})
+    
+    #rf_model = eventReactive({
+    #    y = usa$primary_fuel
+    #})
     
 }

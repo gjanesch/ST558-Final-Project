@@ -7,3 +7,4 @@ Required libraries:
 - shinydashboard
 - tidyverse (ggplot2 and dplyr)
 - DT
+- randomForest
