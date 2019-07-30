@@ -1,6 +1,7 @@
 library(shiny)
 library(shinydashboard)
 library(tidyverse)
+library(randomForest)
 
 server <- function(input, output, session) {
     
@@ -116,8 +117,27 @@ server <- function(input, output, session) {
     
     observe({updateSliderInput(session, "mtry_slider", max = max(1, length(input$rf_vars)))})
     
-    #rf_model = eventReactive({
-    #    y = usa$primary_fuel
-    #})
+    rf_model = eventReactive(input$train_rf, {
+        if(length(input$rf_vars) > 0){
+            x = usa[,c(input$rf_vars, "primary_fuel")]
+            x = x[complete.cases(x),]
+            y = x$primary_fuel
+            x = x %>% select(-primary_fuel)
+            return(randomForest(x = x, y = as.factor(y),
+                                mtry = input$mtry_slider, ntree=input$num_trees))
+        }
+    })
     
+    rf_prediction = eventReactive(input$pred_rf, {
+        m = rf_model()
+        pred_df = data.frame(latitude=input$rf_latitude,
+                             longitude=input$rf_longitude,
+                             capacity_mw=input$rf_capacity,
+                             commissioning_year=input$rf_year,
+                             generation_gwh_2017=input$rf_gen2017)
+        pred_df = pred_df[,input$rf_vars]
+        pred = predict(m, pred_df)
+        return(as.character(pred))
+    })
+    output$rf_pred = renderUI(rf_prediction())
 }

@@ -63,7 +63,7 @@ clustering_tab = tabItem("clustering", fluidRow(cluster_selector, cluster_plot))
 ####################################################################################################
 
 ### UI for primary fuel prediction #################################################################
-fuel_selector = box(width = 4,
+fuel_selector = box(width = 6,
                     HTML("These are the parameters for a random forest model. It is attempting to
                          predict the primary fuel type for the power plant using the selected
                          variables and parameter values.<br>"),
@@ -71,10 +71,6 @@ fuel_selector = box(width = 4,
                                        c("Latitude"="latitude", "Longitude"="longitude",
                                          "Capacity (MW)"="capacity_mw",
                                          "Commissioning Year"="commissioning_year",
-                                         "Energy Generated in 2013 (GWh)"="generation_gwh_2013",
-                                         "Energy Generated in 2014 (GWh)"="generation_gwh_2014",
-                                         "Energy Generated in 2015 (GWh)"="generation_gwh_2015",
-                                         "Energy Generated in 2016 (GWh)"="generation_gwh_2016",
                                          "Energy Generated in 2017 (GWh)"="generation_gwh_2017")),
                     sliderInput("num_trees", "Number of Trees",
                                 min = 10, max = 200, value = 10, step = 10),
@@ -82,11 +78,33 @@ fuel_selector = box(width = 4,
                                 min = 1, max = 1, value = 1, step = 1),
                     actionButton("train_rf", "Train"))
 
-fuel_model_info = box(width = 4, title = "Model Info")
+fuel_predictor = box(width = 6, title = "Prediction",
+                     numericInput("rf_latitude", "Latitude:", 35, min = 20, max = 55),
+                     numericInput("rf_longitude", "Longitude:", -100, min = -80, max = -60),
+                     numericInput("rf_capacity", "Capacity (MW):", 0, min = 0),
+                     numericInput("rf_year", "Year Commisioned:", 2000, min = 1900, max = 2019),
+                     numericInput("rf_gen2017", "2017 Generation: ", 0),
+                     HTML("<br>"),
+                     actionButton("pred_rf", "Predict"),
+                     HTML("<br>Predicted primary fuel type:"),
+                     uiOutput("rf_pred"))
 
-fuel_predictor = box(width = 4, title = "Prediction")
+primary_fuel_tab = tabItem("model_fuel", fluidRow(fuel_selector, fuel_predictor))
+####################################################################################################
 
-primary_fuel_tab = tabItem("model_fuel", fluidRow(fuel_selector, fuel_model_info, fuel_predictor))
+### UI for 2017 generation prediction ##############################################################
+capacity_selector = box(width = 6,
+                        HTML("These are the parameters for a linear regression model. It is
+                             attempting to predict the capacity of the power plant using the
+                             variables selected.<br>"),
+                        checkboxGroupInput("rf_vars", "Clustering variables:",
+                                           c("Latitude"="latitude", "Longitude"="longitude",
+                                             "Primary Fuel"="primary_fuel",
+                                             "Capacity (MW)"="capacity_mw",
+                                             "Commissioning Year"="commissioning_year")),
+                        actionButton("train_rf", "Train"))
+
+capacity_tab = tabItem("model_generated", fluidRow(fuel_selector, fuel_predictor))
 ####################################################################################################
 
 dashboardPage(
