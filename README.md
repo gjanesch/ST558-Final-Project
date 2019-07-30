@@ -8,3 +8,4 @@ Required libraries:
 - tidyverse (ggplot2 and dplyr)
 - DT
 - randomForest
+- plotly

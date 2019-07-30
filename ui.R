@@ -1,16 +1,17 @@
 library(shinydashboard)
+library(plotly)
 
 ### Info for the 'about' panel #####################################################################
 about_string = HTML("<p>This web app was designed to examine data on power plants in the United
                     States. It contains data regarding the location, fuel type, capacity, and
-                    generated energy of the individual plants.
-                    <br><br>
-                    For convenience of plotting, only the lower 48 states are considered.
+                    generated energy of the individual plants. For convenience of plotting, only the
+					lower 48 states are considered.
                     <br>
                     The data is a subset of the Global Power Plant Database, a collection of data on
-                    approximately 30,000 power plants across the globe.  It is from version 1.2.0 of
-                    the database, released 2019-06-12, available
-                    <a href='http://datasets.wri.org/dataset/globalpowerplantdatabase'>here</a>.</p>")
+                    approximately 30,000 power plants across the globe.  It is available
+                    <a href='http://datasets.wri.org/dataset/globalpowerplantdatabase'>here</a>.</p>
+					<br>
+					<i>Data version 1.2.0, released 2019-06-12</i>")
 about_tab = tabItem("about",fluidRow(box(about_string, width = 8)))
 ####################################################################################################
 
@@ -56,7 +57,7 @@ cluster_selector = box(width = 4,
 
 cluster_plot = box(width = 8,
                    title = "Clustered Data Plot",
-                   plotOutput("clusterPlot"),
+                   plotlyOutput("clusterPlot"),
                    uiOutput("clusterNACount"))
 
 clustering_tab = tabItem("clustering", fluidRow(cluster_selector, cluster_plot))

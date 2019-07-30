@@ -2,6 +2,7 @@ library(shiny)
 library(shinydashboard)
 library(tidyverse)
 library(randomForest)
+library(plotly)
 
 server <- function(input, output, session) {
     
@@ -101,15 +102,16 @@ server <- function(input, output, session) {
     }
     
 	# make the clustering plot
-    output$clusterPlot = renderPlot({
+    output$clusterPlot = renderPlotly({
         if(length(input$cluster_vars > 0)){
             dfs = subset_data()
             latlong = dfs[[1]]
             clustering = cluster_data(dfs[[2]])
             clusters = cutree(clustering, k = input$num_clusters)
-            qplot(x = latlong$longitude, y = latlong$latitude, color = as.factor(clusters))
+            p = qplot(x = latlong$longitude, y = latlong$latitude, color = as.factor(clusters))
+			ggplotly(p)
         } else {
-            ggplot()
+            ggplotly()
         }
     })
     
