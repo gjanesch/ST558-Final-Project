@@ -80,9 +80,9 @@ fuel_selector = box(width = 6,
 
 fuel_predictor = box(width = 6, title = "Prediction",
                      numericInput("rf_latitude", "Latitude:", 35, min = 20, max = 55),
-                     numericInput("rf_longitude", "Longitude:", -100, min = -80, max = -60),
+                     numericInput("rf_longitude", "Longitude:", -80, min = -100, max = -60),
                      numericInput("rf_capacity", "Capacity (MW):", 0, min = 0),
-                     numericInput("rf_year", "Year Commisioned:", 2000, min = 1900, max = 2019),
+                     numericInput("rf_year", "Year Commissioned:", 2000, min = 1900, max = 2019),
                      numericInput("rf_gen2017", "2017 Generation: ", 0),
                      HTML("<br>"),
                      actionButton("pred_rf", "Predict"),
@@ -96,15 +96,30 @@ primary_fuel_tab = tabItem("model_fuel", fluidRow(fuel_selector, fuel_predictor)
 capacity_selector = box(width = 6,
                         HTML("These are the parameters for a linear regression model. It is
                              attempting to predict the capacity of the power plant using the
-                             variables selected.<br>"),
-                        checkboxGroupInput("rf_vars", "Clustering variables:",
+                             variables selected.<br><br>"),
+						uiOutput("GWh_math"),
+                        checkboxGroupInput("lr_vars", "Clustering variables:",
                                            c("Latitude"="latitude", "Longitude"="longitude",
                                              "Primary Fuel"="primary_fuel",
                                              "Capacity (MW)"="capacity_mw",
                                              "Commissioning Year"="commissioning_year")),
-                        actionButton("train_rf", "Train"))
+                        actionButton("train_lr", "Train"))
 
-capacity_tab = tabItem("model_generated", fluidRow(fuel_selector, fuel_predictor))
+capacity_predictor = box(width = 6, title = "Prediction",
+						 numericInput("lr_latitude", "Latitude:", 35, min = 20, max = 55),
+						 numericInput("lr_longitude", "Longitude:", -80, min = -100, max = -60),
+						 selectizeInput("lr_fuel", "Primary Fuel Type: ",
+						                choices = c("Biomass", "Coal", "Gas", "Geothermal",
+										            "Hydro", "Nuclear", "Oil", "Other", "Solar",
+													"Waste", "Wind")),
+						 numericInput("lr_capacity", "Capacity (MW):", 0, min = 0),
+						 numericInput("lr_year", "Year Commissioned:", 2000, min = 1900, max = 2019),
+						 HTML("<br>"),
+						 actionButton("pred_lr", "Predict"),
+						 HTML("<br>Predicted generation in 2017:"),
+						 uiOutput("lr_pred"))
+
+capacity_tab = tabItem("model_generated", fluidRow(capacity_selector, capacity_predictor))
 ####################################################################################################
 
 dashboardPage(
@@ -124,7 +139,7 @@ dashboardPage(
     ),
     dashboardBody(
         tabItems(
-            about_tab, exploration_tab, clustering_tab, primary_fuel_tab
+            about_tab, exploration_tab, clustering_tab, primary_fuel_tab, capacity_tab
         )
     )
 )

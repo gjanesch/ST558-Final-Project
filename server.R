@@ -5,11 +5,11 @@ library(randomForest)
 
 server <- function(input, output, session) {
     
+	###GENERAL FUNCTIONS############################################################################
     # load the data
     usa = readRDS("usa_data.rds")
     
-    output$expl_plot_title = renderUI(paste("Plot of", input$expl_variable))
-    
+	# map inputs from usesr controls to the corresponding column names 
     map_var_name = function(){
         return(switch(input$expl_variable, "Capacity (MW)"="capacity_mw",
                       "Primary Fuel"="primary_fuel",
@@ -19,8 +19,12 @@ server <- function(input, output, session) {
                       "Energy Generated in 2016 (GWh)"="generation_gwh_2016",
                       "Energy Generated in 2017 (GWh)"="generation_gwh_2017"))
     }
+    ################################################################################################
+	
+	###EXPLORATORY TAB FUNCTIONS####################################################################
+	output$expl_plot_title = renderUI(paste("Plot of", input$expl_variable))
     
-    exploratory_plot = function(){
+	exploratory_plot = function(){
         if(input$expl_variable == "Primary Fuel"){
             ggplot(data = usa) +
                 geom_point(aes(x = longitude, y = latitude, color = primary_fuel), alpha = 0.5)
@@ -69,7 +73,10 @@ server <- function(input, output, session) {
             stat_df()
         }
     })
-    
+    ################################################################################################
+	
+	###CLUSTERING TAB FUNCTIONS#####################################################################
+	# extract just the data needed for clustering
     subset_data = function(){
         if(length(input$cluster_vars > 0)){
             usa_subset = usa[,input$cluster_vars]
@@ -82,6 +89,7 @@ server <- function(input, output, session) {
         }
     }
     
+	# perform the hierarchical clustering and return the cluster numbers for each data point.
     cluster_data = function(df){
         if(length(input$cluster_vars > 0)){
             clust_data = sapply(df, function(x){(x-mean(x))/sd(x)})
@@ -92,6 +100,7 @@ server <- function(input, output, session) {
         }
     }
     
+	# make the clustering plot
     output$clusterPlot = renderPlot({
         if(length(input$cluster_vars > 0)){
             dfs = subset_data()
@@ -104,6 +113,7 @@ server <- function(input, output, session) {
         }
     })
     
+	# give a note to the user about how many NAs (incomplete cases) there are
     output$clusterNACount = renderUI({
         if(length(input$cluster_vars > 0)){
             df = subset_data()[[2]]
@@ -114,9 +124,14 @@ server <- function(input, output, session) {
             ""
         }
     })
-    
+    ################################################################################################
+	
+	###FUEL TYPE (RANDOM FOREST) FUNCTIONS##########################################################
+	# make the mtry slider control's max value change as appropriate
     observe({updateSliderInput(session, "mtry_slider", max = max(1, length(input$rf_vars)))})
     
+	# generate the random forest model on a click of the train button; use only complete cases since
+	# RFs can't handle NAs
     rf_model = eventReactive(input$train_rf, {
         if(length(input$rf_vars) > 0){
             x = usa[,c(input$rf_vars, "primary_fuel")]
@@ -128,6 +143,8 @@ server <- function(input, output, session) {
         }
     })
     
+	# make the prediction; have to assemble the prediction data frame on the fly, but don't use all
+	# of the columns
     rf_prediction = eventReactive(input$pred_rf, {
         m = rf_model()
         pred_df = data.frame(latitude=input$rf_latitude,
@@ -139,5 +156,37 @@ server <- function(input, output, session) {
         pred = predict(m, pred_df)
         return(as.character(pred))
     })
+	
     output$rf_pred = renderUI(rf_prediction())
+	################################################################################################
+	
+	###2017 gen (LINEAR REGRESSION) FUNCTIONS#######################################################
+	
+	output$GWh_math = renderUI(
+		withMathJax(helpText("Note: GWh are a unit of energy where $$1 GWh = 1GW * 1hour$$"))
+	)
+	
+	#Generate the linear regression model; only trigger it when the train button is pressed to
+	#avoid unnecessary overhead; discard incomplete columns
+	lr_model = eventReactive(input$train_lr, {
+        if(length(input$lr_vars) > 0){
+            df = usa[,c(input$lr_vars, "generation_gwh_2017")]
+            df = df[complete.cases(x),]
+            return(lm(generation_gwh_2017 ~ ., data = df))
+        }
+    })
+	
+	#Make predictions for the linear regression model
+	lr_prediction = eventReactive(input$pred_lr, {
+		m = lr_model()
+		pred_df = data.frame(latitude=input$lr_latitude,
+                             longitude=input$lr_longitude,
+                             capacity_mw=input$lr_capacity,
+                             commissioning_year=input$lr_year,
+                             primary_fuel=input$lr_fuel)
+		pred = predict(m, pred_df)
+		return(pred)
+	})
+	output$lr_pred = renderUI(paste(lr_prediction(), "GWh"))
+	################################################################################################
 }
